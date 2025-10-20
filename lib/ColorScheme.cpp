@@ -31,6 +31,7 @@
 #include <QSettings>
 #include <QDir>
 #include <QRegularExpression>
+#include <QRandomGenerator>
 
 
 // KDE
@@ -179,9 +180,6 @@ ColorEntry ColorScheme::colorEntry(int index , uint randomSeed) const
 {
     Q_ASSERT( index >= 0 && index < TABLE_COLORS );
 
-    if ( randomSeed != 0 )
-        qsrand(randomSeed);
-
     ColorEntry entry = colorTable()[index];
 
     if ( randomSeed != 0 &&
@@ -190,11 +188,12 @@ ColorEntry ColorScheme::colorEntry(int index , uint randomSeed) const
     {
         const RandomizationRange& range = _randomTable[index];
 
+        QRandomGenerator rng(static_cast<quint32>(randomSeed));
 
-        int hueDifference = range.hue ? (qrand() % range.hue) - range.hue/2 : 0;
-        int saturationDifference = range.saturation ? (qrand() % range.saturation) - range.saturation/2 : 0;
-        int  valueDifference = range.value ? (qrand() % range.value) - range.value/2 : 0;
-
+        int hueDifference = range.hue ? static_cast<int>(rng.bounded(range.hue)) - range.hue/2 : 0;
+        int saturationDifference = range.saturation ? static_cast<int>(rng.bounded(range.saturation)) - range.saturation/2 : 0;
+        int valueDifference = range.value ? static_cast<int>(rng.bounded(range.value)) - range.value/2 : 0;
+        
         QColor& color = entry.color;
 
         int newHue = qAbs( (color.hue() + hueDifference) % MAX_HUE );
@@ -517,6 +516,7 @@ void ColorSchemeManager::loadAllColorSchemes()
             failed++;
     }
 
+    Q_UNUSED(failed);
     /*if ( failed > 0 )
         qDebug() << "failed to load " << failed << " color schemes.";*/
 

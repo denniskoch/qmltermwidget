@@ -863,10 +863,10 @@ public:
 
 private:
     virtual bool readProcInfo(int aPid) {
-        int managementInfoBase[4];
-        size_t mibLength;
-        struct kinfo_proc* kInfoProc;
-/*
+        //int managementInfoBase[4];
+        //size_t mibLength;
+        //struct kinfo_proc* kInfoProc;
+        /*
         KDE_struct_stat statInfo;
 
         // Find the tty device of 'pid' (Example: /dev/ttys001)
@@ -915,7 +915,8 @@ private:
             setPid(aPid);
         }
         return true;
-*/
+        */
+        Q_UNUSED(aPid);
         return false;
     }
 

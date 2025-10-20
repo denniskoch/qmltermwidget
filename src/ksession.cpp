@@ -239,14 +239,15 @@ void KSession::sendText(QString text)
 void KSession::sendKey(int rep, int key, int mod) const
 {
     //TODO implement or remove this function.
-//    Qt::KeyboardModifier kbm = Qt::KeyboardModifier(mod);
-
-//    QKeyEvent qkey(QEvent::KeyPress, key, kbm);
-
-//    while (rep > 0){
-//        m_session->sendKey(&qkey);
-//        --rep;
-    //    }
+    //Qt::KeyboardModifier kbm = Qt::KeyboardModifier(mod);
+    //QKeyEvent qkey(QEvent::KeyPress, key, kbm);
+    //while (rep > 0){
+    //    m_session->sendKey(&qkey);
+    //    --rep;
+    //}
+    Q_UNUSED(rep);
+    Q_UNUSED(key);
+    Q_UNUSED(mod);
 }
 
 void KSession::clearScreen()

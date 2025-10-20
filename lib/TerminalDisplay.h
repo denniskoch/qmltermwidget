@@ -145,8 +145,7 @@ public:
         /** Show the scroll bar on the right side of the display. */
         ScrollBarRight=2 
     };
-    /** 
-
+    
     /** Sets the background image of the terminal display. */
     void setBackgroundImage(const QString& backgroundImage);
 
@@ -690,10 +689,10 @@ protected:
     QVariant inputMethodQuery( Qt::InputMethodQuery query ) const override;
 
     // QMLTermWidget
-    void paint(QPainter * painter);
-    virtual void geometryChanged(const QRectF & newGeometry, const QRectF & oldGeometry);
+    void paint(QPainter * painter) override;
+    virtual void geometryChanged(const QRectF & newGeometry, const QRectF & oldGeometry) override;
     void inputMethodQuery(QInputMethodQueryEvent *event);
-    void itemChange(ItemChange change, const ItemChangeData & value);
+    void itemChange(ItemChange change, const ItemChangeData & value) override;
 
 protected slots:
 

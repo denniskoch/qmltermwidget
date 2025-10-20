@@ -224,14 +224,15 @@ void TerminalDisplay::fontChange(const QFont&)
   // "Base character width on widest ASCII character. This prevents too wide
   //  characters in the presence of double wide (e.g. Japanese) characters."
   // Get the width from representative normal width characters
-  _fontWidth = qRound((double)fm.width(QLatin1String(REPCHAR))/(double)qstrlen(REPCHAR));
-
+  _fontWidth = qRound(double(fm.horizontalAdvance(QLatin1String(REPCHAR))) /
+                      double(qstrlen(REPCHAR)));
   _fixedFont = true;
 
-  int fw = fm.width(QLatin1Char(REPCHAR[0]));
+  int fw = fm.horizontalAdvance(QLatin1Char(REPCHAR[0]));
+
   for(unsigned int i=1; i< qstrlen(REPCHAR); i++)
   {
-    if (fw != fm.width(QLatin1Char(REPCHAR[i])))
+    if (fw != fm.horizontalAdvance(QLatin1Char(REPCHAR[i])))
     {
       _fixedFont = false;
       break;
@@ -368,11 +369,11 @@ TerminalDisplay::TerminalDisplay(QQuickItem *parent)
 ,_filterChain(new TerminalImageFilterChain())
 ,_cursorShape(Emulation::KeyboardCursorShape::BlockCursor)
 ,mMotionAfterPasting(NoMoveScreenWindow)
+,_leftBaseMargin(1)
+,_topBaseMargin(1)
 ,m_font("Monospace", 12)
 ,m_color_role(QPalette::Background)
 ,m_full_cursor_height(false)
-,_leftBaseMargin(1)
-,_topBaseMargin(1)
 ,_drawLineChars(true)
 {
   // terminal applications are not designed with Right-To-Left in mind,
@@ -892,7 +893,7 @@ void TerminalDisplay::drawTextFragment(QPainter& painter ,
     const QColor backgroundColor = style->backgroundColor.color(_colorTable);
 
     // draw background if different from the display's background color
-    if ( backgroundColor != palette().background().color() )
+    if ( backgroundColor != palette().window().color() )
         drawBackground(painter,rect,backgroundColor,
                        false /* do not use transparency */);
 
@@ -1249,6 +1250,8 @@ void TerminalDisplay::updateImage()
 
         dirtyRegion |= dirtyRect;
     }
+
+    Q_UNUSED(dirtyLineCount);
 
     // replace the line of characters in the old _image with the
     // current line of the new _image
@@ -1655,7 +1658,7 @@ int TerminalDisplay::textWidth(const int startColumn, const int length, const in
   QFontMetrics fm(font());
   int result = 0;
   for (int column = 0; column < length; column++) {
-    result += fm.width(_image[loc(startColumn + column, line)].character);
+    result += fm.horizontalAdvance(QChar(_image[loc(startColumn + column, line)].character));
   }
   return result;
 }
@@ -2590,7 +2593,7 @@ void TerminalDisplay::mouseDoubleClickEvent(QMouseEvent* ev)
 
 void TerminalDisplay::wheelEvent( QWheelEvent* ev )
 {
-  if (ev->orientation() != Qt::Vertical)
+  if (ev->angleDelta().y() == 0)
     return;
 
   // if the terminal program is not interested mouse events
@@ -2610,10 +2613,10 @@ void TerminalDisplay::wheelEvent( QWheelEvent* ev )
         // to get a reasonable scrolling speed, scroll by one line for every 5 degrees
         // of mouse wheel rotation.  Mouse wheels typically move in steps of 15 degrees,
         // giving a scroll of 3 lines
-        int key = ev->delta() > 0 ? Qt::Key_Up : Qt::Key_Down;
+        int key = ev->angleDelta().y() > 0 ? Qt::Key_Up : Qt::Key_Down;
 
         // QWheelEvent::delta() gives rotation in eighths of a degree
-        int wheelDegrees = ev->delta() / 8;
+        int wheelDegrees = ev->angleDelta().y() / 8;
         int linesToScroll = abs(wheelDegrees) / 5;
 
         QKeyEvent keyScrollEvent(QEvent::KeyPress,key,Qt::NoModifier);
@@ -2628,12 +2631,12 @@ void TerminalDisplay::wheelEvent( QWheelEvent* ev )
 
     int charLine;
     int charColumn;
-    getCharacterPosition( ev->pos() , charLine , charColumn );
+    getCharacterPosition( ev->position().toPoint() , charLine , charColumn );
 
-    emit mouseSignal( ev->delta() > 0 ? 4 : 5,
-                      charColumn + 1,
-                      charLine + 1 +_scrollBar->value() -_scrollBar->maximum() ,
-                      0);
+    emit mouseSignal( ev->angleDelta().y() > 0 ? 4 : 5,
+                       charColumn + 1,
+                       charLine + 1 +_scrollBar->value() -_scrollBar->maximum() ,
+                       0);
   }
 }
 
@@ -3276,7 +3279,7 @@ void TerminalDisplay::doDrag()
   QMimeData *mimeData = new QMimeData;
   mimeData->setText(QApplication::clipboard()->text(QClipboard::Selection));
   dragInfo.dragObject->setMimeData(mimeData);
-  dragInfo.dragObject->start(Qt::CopyAction);
+  dragInfo.dragObject->exec(Qt::CopyAction);
   // Don't delete the QTextDrag object.  Qt will delete it when it's done with it.
 }
 
@@ -3533,7 +3536,16 @@ void TerminalDisplay::simulateKeySequence(const QKeySequence &keySequence)
 }
 
 void TerminalDisplay::simulateWheel(int x, int y, int buttons, int modifiers, QPointF angleDelta){
-    QWheelEvent event(QPointF(x,y), angleDelta.y(), (Qt::MouseButton) buttons, (Qt::KeyboardModifier) modifiers);
+    QWheelEvent event(
+        QPointF(x, y),                  // position
+        QPointF(x, y),                  // globalPosition (best effort)
+        QPoint(),                       // pixelDelta
+        QPoint(0, int(angleDelta.y())), // angleDelta (1/8°)
+        Qt::MouseButtons(buttons),
+        Qt::KeyboardModifiers(modifiers),
+        Qt::NoScrollPhase,
+        false                           // not inverted
+    );
     wheelEvent(&event);
 }
 
